@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import api from '../services/api';
 
 const paymentMethods = [
   { id: 'card', name: 'Credit/Debit Card', icon: '💳', description: 'Visa, Mastercard, Amex' },
@@ -30,6 +31,7 @@ const Payment = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [saveCard, setSaveCard] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleCardChange = (field, value) => {
     let formattedValue = value;
@@ -47,25 +49,57 @@ const Payment = () => {
 
   const handlePayment = async () => {
     setIsProcessing(true);
+    setError(null);
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setIsProcessing(false);
-    setIsSuccess(true);
-    
-    // Navigate to confirmation after success animation
-    setTimeout(() => {
-      const pnr = generatePNR();
-      navigate('/confirmation', { 
-        state: { flight, passengers, contactInfo, selections, grandTotal, pnr } 
-      });
-    }, 2000);
-  };
+    try {
+      // Check if user is authenticated
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setIsProcessing(false);
+        setError('Please login to complete your booking');
+        navigate('/login', { state: { from: location } });
+        return;
+      }
 
-  const generatePNR = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+      // Step 1: Create booking with flight ID
+      const bookingResponse = await api.post('/bookings', {
+        flight_id: flight.id,
+      });
+
+      const { booking } = bookingResponse.data;
+      const pnr = booking.pnr;
+      const bookingId = booking.id;
+
+      // Step 2: Process payment
+      await api.post('/payments', {
+        booking_id: bookingId,
+        payment_mode: selectedMethod,
+        amount: grandTotal,
+      });
+
+      // Store booking info
+      localStorage.setItem('lastBookingPNR', pnr);
+      
+      setIsProcessing(false);
+      setIsSuccess(true);
+      
+      // Navigate to confirmation after success animation
+      setTimeout(() => {
+        navigate('/confirmation', { 
+          state: { flight, passengers, contactInfo, selections, grandTotal, pnr, bookingId } 
+        });
+      }, 2000);
+    } catch (err) {
+      setIsProcessing(false);
+      console.error('Booking/Payment error:', err);
+      
+      if (err.response?.status === 401) {
+        setError('Session expired. Please login again.');
+        navigate('/login', { state: { from: location } });
+      } else {
+        setError(err.response?.data?.error || 'Payment failed. Please try again.');
+      }
+    }
   };
 
   return (
@@ -187,6 +221,17 @@ const Payment = () => {
               Secure <span className="gradient-text">Payment</span>
             </h1>
             <p className="text-gray-400">Complete your booking with our secure payment gateway</p>
+            
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm max-w-md mx-auto"
+              >
+                {error}
+              </motion.div>
+            )}
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

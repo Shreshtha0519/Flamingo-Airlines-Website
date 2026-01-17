@@ -1,11 +1,21 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    setUserMenuOpen(false);
+    navigate('/');
+  };
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -125,13 +135,60 @@ const Navbar = () => {
 
           {/* Login/Sign Up Button & Mobile Menu */}
           <div className="flex items-center gap-4">
-            <Link
-              to="/login"
-              className="hidden sm:flex items-center gap-2 bg-white text-slate-900 px-6 py-2.5 rounded-full hover:bg-gradient-to-r hover:from-violet-400 hover:to-fuchsia-400 hover:text-white transition-all duration-300 font-medium text-sm"
-            >
-              <span>👤</span>
-              Login / Sign Up
-            </Link>
+            {isAuthenticated ? (
+              <div 
+                className="relative"
+                onMouseEnter={() => setUserMenuOpen(true)}
+                onMouseLeave={() => setUserMenuOpen(false)}
+              >
+                <button className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white px-4 py-2.5 rounded-full font-medium text-sm">
+                  <span>👤</span>
+                  {user?.name?.split(' ')[0] || 'User'}
+                </button>
+                
+                {/* User Dropdown */}
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full right-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+                    >
+                      <div className="p-2">
+                        <div className="px-4 py-3 border-b border-white/10">
+                          <p className="text-white font-medium text-sm">{user?.name}</p>
+                          <p className="text-gray-400 text-xs">{user?.email}</p>
+                        </div>
+                        <Link
+                          to="/cancel"
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-violet-500/10 transition-colors"
+                        >
+                          <span>🎫</span>
+                          <span className="text-sm font-medium">My Bookings</span>
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                        >
+                          <span>🚪</span>
+                          <span className="text-sm font-medium">Logout</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="hidden sm:flex items-center gap-2 bg-white text-slate-900 px-6 py-2.5 rounded-full hover:bg-gradient-to-r hover:from-violet-400 hover:to-fuchsia-400 hover:text-white transition-all duration-300 font-medium text-sm"
+              >
+                <span>👤</span>
+                Login / Sign Up
+              </Link>
+            )}
 
             {/* Mobile Menu Button */}
             <button

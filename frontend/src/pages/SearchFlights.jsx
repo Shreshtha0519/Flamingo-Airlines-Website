@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const SearchFlights = () => {
+  const navigate = useNavigate();
   const [tripType, setTripType] = useState('oneway');
   const [formData, setFormData] = useState({
     from: '',
@@ -49,8 +51,15 @@ const SearchFlights = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Navigate to flight results page
-    console.log('Search flights:', formData);
+    // Build query parameters for flight search
+    const params = new URLSearchParams();
+    if (formData.from) params.append('source', formData.from);
+    if (formData.to) params.append('destination', formData.to);
+    if (formData.departDate) params.append('departureDate', formData.departDate);
+    if (tripType !== 'oneway') params.append('flightType', tripType);
+    
+    // Navigate to flight results page with search params
+    navigate(`/flights/results?${params.toString()}`);
   };
 
   // Animation variants

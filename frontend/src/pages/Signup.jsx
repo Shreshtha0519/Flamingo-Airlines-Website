@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from './AuthLayout';
+import api from '../services/api';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -103,10 +104,35 @@ const Signup = () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    
-    navigate('/login');
+    setErrors({});
+
+    try {
+      await api.post('/auth/signup', {
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // Show success and redirect to login
+      navigate('/login', { 
+        state: { message: 'Account created successfully! Please login.' } 
+      });
+    } catch (error) {
+      if (error.response) {
+        const errorMessage = error.response.data?.error || 'Registration failed';
+        if (errorMessage.toLowerCase().includes('email')) {
+          setErrors({ email: errorMessage });
+        } else {
+          setErrors({ general: errorMessage });
+        }
+      } else if (error.request) {
+        setErrors({ general: 'Network error. Please check your connection and try again.' });
+      } else {
+        setErrors({ general: 'An unexpected error occurred. Please try again.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const InputField = ({ icon, label, name, type = 'text', placeholder, showToggle, isVisible, onToggle }) => (
@@ -177,6 +203,20 @@ const Signup = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* General Error Message */}
+          <AnimatePresence>
+            {errors.general && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm text-center"
+              >
+                ⚠️ {errors.general}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <InputField
             icon="👤"
             label="Full Name"

@@ -2,47 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-
-// Mock booking data
-const mockBookings = {
-  'ABC123': {
-    pnr: 'ABC123',
-    status: 'confirmed',
-    flight: {
-      airline: 'Flamingo Airlines',
-      airlineLogo: '🦩',
-      flightNumber: 'FL-201',
-      from: { city: 'New York', code: 'JFK', time: '08:00' },
-      to: { city: 'London', code: 'LHR', time: '20:15' },
-      date: 'Jan 25, 2026',
-      duration: '7h 15m',
-      class: 'Economy',
-    },
-    passengers: [
-      { name: 'John Doe', seat: '14A' },
-      { name: 'Jane Doe', seat: '14B' },
-    ],
-    totalPaid: 918,
-    refundAmount: 780,
-  },
-  'XYZ789': {
-    pnr: 'XYZ789',
-    status: 'confirmed',
-    flight: {
-      airline: 'Flamingo Airlines',
-      airlineLogo: '🦩',
-      flightNumber: 'FL-505',
-      from: { city: 'Los Angeles', code: 'LAX', time: '14:30' },
-      to: { city: 'Tokyo', code: 'NRT', time: '18:45' },
-      date: 'Feb 10, 2026',
-      duration: '11h 15m',
-      class: 'Business',
-    },
-    passengers: [{ name: 'Alex Smith', seat: '2A' }],
-    totalPaid: 2450,
-    refundAmount: 2200,
-  },
-};
+import api from '../services/api';
 
 const CancelTicket = () => {
   const [pnrInput, setPnrInput] = useState('');
@@ -64,29 +24,73 @@ const CancelTicket = () => {
     setIsSearching(true);
     setBooking(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const foundBooking = mockBookings[pnrInput.toUpperCase()];
-    
-    if (foundBooking) {
-      setBooking(foundBooking);
-    } else {
-      setError('No booking found with this PNR. Please check and try again.');
+    try {
+      const response = await api.get(`/bookings/${pnrInput.toUpperCase()}`);
+      const bookingData = response.data.booking;
+      
+      // Transform API response to match UI format
+      setBooking({
+        pnr: bookingData.pnr,
+        id: bookingData.id,
+        status: bookingData.status?.toLowerCase() || 'confirmed',
+        flight: {
+          airline: 'Flamingo Airlines',
+          airlineLogo: '🦩',
+          flightNumber: bookingData.flight_number || 'FL-XXX',
+          from: { 
+            city: bookingData.source || 'Origin', 
+            code: bookingData.source?.substring(0, 3).toUpperCase() || 'XXX', 
+            time: bookingData.departure_time ? new Date(bookingData.departure_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00'
+          },
+          to: { 
+            city: bookingData.destination || 'Destination', 
+            code: bookingData.destination?.substring(0, 3).toUpperCase() || 'XXX', 
+            time: bookingData.arrival_time ? new Date(bookingData.arrival_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00'
+          },
+          date: bookingData.departure_time ? new Date(bookingData.departure_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
+          duration: 'N/A',
+          class: 'Economy',
+        },
+        passengers: [{ name: bookingData.passenger_name || 'Passenger', seat: 'N/A' }],
+        totalPaid: 0,
+        refundAmount: 0,
+      });
+    } catch (err) {
+      console.error('Error fetching booking:', err);
+      if (err.response?.status === 404) {
+        setError('No booking found with this PNR. Please check and try again.');
+      } else if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError('Unable to fetch booking. Please try again later.');
+      }
+    } finally {
+      setIsSearching(false);
     }
-
-    setIsSearching(false);
   };
 
   const handleCancelBooking = async () => {
     setIsCancelling(true);
 
-    // Simulate cancellation process
-    await new Promise((resolve) => setTimeout(resolve, 2500));
-
-    setIsCancelling(false);
-    setIsCancelled(true);
-    setShowModal(false);
+    try {
+      await api.put(`/bookings/cancel/${booking.pnr}`);
+      setIsCancelling(false);
+      setIsCancelled(true);
+      setShowModal(false);
+    } catch (err) {
+      setIsCancelling(false);
+      setShowModal(false);
+      console.error('Error cancelling booking:', err);
+      if (err.response?.status === 401) {
+        setError('Please login to cancel your booking.');
+      } else if (err.response?.status === 403) {
+        setError('You are not authorized to cancel this booking.');
+      } else if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError('Unable to cancel booking. Please try again later.');
+      }
+    }
   };
 
   const resetForm = () => {

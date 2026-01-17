@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from './AuthLayout';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -47,12 +51,37 @@ const Login = () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    
-    // For now, just navigate to home (no actual auth)
-    navigate('/');
+    setErrors({});
+
+    try {
+      const response = await api.post('/auth/login', {
+        email: formData.email,
+        password: formData.password,
+      });
+
+      const { token, user } = response.data;
+
+      // Use AuthContext login function
+      login(user, token);
+
+      // Navigate to intended page or home
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    } catch (error) {
+      // Handle error states
+      if (error.response) {
+        // Server responded with error
+        const errorMessage = error.response.data?.error || 'Login failed';
+        setErrors({ general: errorMessage });
+      } else if (error.request) {
+        // Network error
+        setErrors({ general: 'Network error. Please check your connection.' });
+      } else {
+        setErrors({ general: 'An unexpected error occurred.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const inputVariants = {
@@ -84,6 +113,17 @@ const Login = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* General Error Message */}
+          {errors.general && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm text-center"
+            >
+              {errors.general}
+            </motion.div>
+          )}
+
           {/* Email Field */}
           <motion.div variants={inputVariants} whileFocus="focus">
             <label className="block text-sm font-medium text-gray-300 mb-2">

@@ -1,98 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-
-// Mock flight data
-const mockFlights = [
-  {
-    id: 1,
-    airline: 'Flamingo Airlines',
-    airlineLogo: '🦩',
-    flightNumber: 'FL-201',
-    from: { city: 'New York', code: 'JFK', time: '08:00' },
-    to: { city: 'London', code: 'LHR', time: '20:15' },
-    duration: '7h 15m',
-    stops: 0,
-    price: 459,
-    class: 'Economy',
-    seatsLeft: 12,
-    amenities: ['wifi', 'meal', 'entertainment', 'usb'],
-  },
-  {
-    id: 2,
-    airline: 'Flamingo Airlines',
-    airlineLogo: '🦩',
-    flightNumber: 'FL-305',
-    from: { city: 'New York', code: 'JFK', time: '14:30' },
-    to: { city: 'London', code: 'LHR', time: '03:00' },
-    duration: '7h 30m',
-    stops: 0,
-    price: 389,
-    class: 'Economy',
-    seatsLeft: 5,
-    amenities: ['wifi', 'meal', 'usb'],
-  },
-  {
-    id: 3,
-    airline: 'SkyWings',
-    airlineLogo: '🦅',
-    flightNumber: 'SW-118',
-    from: { city: 'New York', code: 'JFK', time: '10:45' },
-    to: { city: 'London', code: 'LHR', time: '00:30' },
-    duration: '8h 45m',
-    stops: 1,
-    stopCity: 'Dublin',
-    price: 325,
-    class: 'Economy',
-    seatsLeft: 23,
-    amenities: ['wifi', 'meal'],
-  },
-  {
-    id: 4,
-    airline: 'Flamingo Airlines',
-    airlineLogo: '🦩',
-    flightNumber: 'FL-501',
-    from: { city: 'New York', code: 'JFK', time: '19:00' },
-    to: { city: 'London', code: 'LHR', time: '07:00' },
-    duration: '7h 00m',
-    stops: 0,
-    price: 649,
-    class: 'Business',
-    seatsLeft: 8,
-    amenities: ['wifi', 'meal', 'entertainment', 'usb', 'lounge'],
-  },
-  {
-    id: 5,
-    airline: 'AeroJet',
-    airlineLogo: '✈️',
-    flightNumber: 'AJ-442',
-    from: { city: 'New York', code: 'JFK', time: '06:15' },
-    to: { city: 'London', code: 'LHR', time: '19:45' },
-    duration: '8h 30m',
-    stops: 1,
-    stopCity: 'Reykjavik',
-    price: 299,
-    class: 'Economy',
-    seatsLeft: 31,
-    amenities: ['meal', 'usb'],
-  },
-  {
-    id: 6,
-    airline: 'Flamingo Airlines',
-    airlineLogo: '🦩',
-    flightNumber: 'FL-777',
-    from: { city: 'New York', code: 'JFK', time: '22:00' },
-    to: { city: 'London', code: 'LHR', time: '10:00' },
-    duration: '7h 00m',
-    stops: 0,
-    price: 899,
-    class: 'First Class',
-    seatsLeft: 3,
-    amenities: ['wifi', 'meal', 'entertainment', 'usb', 'lounge', 'bed'],
-  },
-];
+import api from '../services/api';
 
 const amenityIcons = {
   wifi: { icon: '📶', label: 'Free WiFi' },
@@ -105,12 +16,73 @@ const amenityIcons = {
 
 const FlightResults = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [flights, setFlights] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('recommended');
   const [filterStops, setFilterStops] = useState('all');
   const [selectedFlight, setSelectedFlight] = useState(null);
 
+  // Fetch flights from API
+  useEffect(() => {
+    const fetchFlights = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Build query string from search params
+        const queryParams = new URLSearchParams();
+        const source = searchParams.get('source');
+        const destination = searchParams.get('destination');
+        const departureDate = searchParams.get('departureDate');
+        const flightType = searchParams.get('flightType');
+
+        if (source) queryParams.append('source', source);
+        if (destination) queryParams.append('destination', destination);
+        if (departureDate) queryParams.append('departureDate', departureDate);
+        if (flightType) queryParams.append('flightType', flightType);
+
+        const response = await api.get(`/flights/search?${queryParams.toString()}`);
+        
+        // Transform API response to match expected format
+        const transformedFlights = response.data.flights.map(flight => ({
+          id: flight.id,
+          airline: flight.airline || 'Flamingo Airlines',
+          airlineLogo: '🦩',
+          flightNumber: flight.flight_number,
+          from: { 
+            city: flight.source, 
+            code: flight.source_code || flight.source?.substring(0, 3).toUpperCase(), 
+            time: flight.departure_time ? new Date(flight.departure_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00'
+          },
+          to: { 
+            city: flight.destination, 
+            code: flight.destination_code || flight.destination?.substring(0, 3).toUpperCase(), 
+            time: flight.arrival_time ? new Date(flight.arrival_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00'
+          },
+          duration: flight.duration || 'N/A',
+          stops: flight.stops || 0,
+          price: flight.price || 0,
+          class: flight.class || 'Economy',
+          seatsLeft: flight.available_seats || 0,
+          amenities: ['wifi', 'meal', 'usb'],
+        }));
+
+        setFlights(transformedFlights);
+      } catch (err) {
+        console.error('Error fetching flights:', err);
+        setError(err.response?.data?.error || 'Failed to fetch flights. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFlights();
+  }, [searchParams]);
+
   // Filter and sort flights
-  const filteredFlights = mockFlights
+  const filteredFlights = flights
     .filter(flight => {
       if (filterStops === 'all') return true;
       if (filterStops === 'nonstop') return flight.stops === 0;
@@ -165,6 +137,59 @@ const FlightResults = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
+          {/* Loading State */}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-20"
+            >
+              <div className="w-16 h-16 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-400 text-lg">Searching for flights...</p>
+            </motion.div>
+          )}
+
+          {/* Error State */}
+          {error && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-500/10 border border-red-500/50 rounded-2xl p-8 text-center"
+            >
+              <div className="text-4xl mb-4">❌</div>
+              <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Flights</h2>
+              <p className="text-gray-400 mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="gradient-btn px-6 py-2 rounded-full text-white font-medium"
+              >
+                Try Again
+              </button>
+            </motion.div>
+          )}
+
+          {/* No Results State */}
+          {!isLoading && !error && flights.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-slate-800/50 border border-white/10 rounded-2xl p-8 text-center"
+            >
+              <div className="text-4xl mb-4">✈️</div>
+              <h2 className="text-xl font-semibold text-white mb-2">No Flights Found</h2>
+              <p className="text-gray-400 mb-4">Try adjusting your search criteria</p>
+              <button
+                onClick={() => navigate('/search')}
+                className="gradient-btn px-6 py-2 rounded-full text-white font-medium"
+              >
+                New Search
+              </button>
+            </motion.div>
+          )}
+
+          {/* Results Content */}
+          {!isLoading && !error && flights.length > 0 && (
+            <>
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -379,19 +404,6 @@ const FlightResults = () => {
             </AnimatePresence>
           </motion.div>
 
-          {/* No Results */}
-          {filteredFlights.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16"
-            >
-              <span className="text-6xl mb-4 block">🔍</span>
-              <h3 className="text-xl font-semibold text-white mb-2">No flights found</h3>
-              <p className="text-gray-400">Try adjusting your filters</p>
-            </motion.div>
-          )}
-
           {/* Price Alert Banner */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -418,6 +430,8 @@ const FlightResults = () => {
               </motion.button>
             </div>
           </motion.div>
+            </>
+          )}
         </div>
       </section>
 
