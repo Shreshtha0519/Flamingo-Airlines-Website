@@ -7,6 +7,7 @@ dotenv.config();
 
 const { testConnection } = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const flightRoutes = require('./routes/flightRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,12 +28,14 @@ app.get('/', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/flights', flightRoutes);
 
 app.get('/api', (req, res) => {
   res.json({
     message: 'Flamingo Airlines API',
     endpoints: {
       auth: '/api/auth',
+      flights: '/api/flights',
       flights: '/api/flights',
       bookings: '/api/bookings',
       users: '/api/users',
