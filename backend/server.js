@@ -1,10 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { testConnection } = require('./config/db');
 
-// Load environment variables
+// Load environment variables FIRST before other imports
 dotenv.config();
+
+const { testConnection } = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,11 +25,14 @@ app.get('/', (req, res) => {
   });
 });
 
-// API routes placeholder
+// API routes
+app.use('/api/auth', authRoutes);
+
 app.get('/api', (req, res) => {
   res.json({
     message: 'Flamingo Airlines API',
     endpoints: {
+      auth: '/api/auth',
       flights: '/api/flights',
       bookings: '/api/bookings',
       users: '/api/users',
