@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { testConnection } = require('./config/db');
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +47,13 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🦩 Flamingo Airlines API running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  // Test database connection
+  await testConnection();
+  
+  app.listen(PORT, () => {
+    console.log(`🦩 Flamingo Airlines API running on http://localhost:${PORT}`);
+  });
+};
+
+startServer();
