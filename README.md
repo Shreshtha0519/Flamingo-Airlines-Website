@@ -4,18 +4,6 @@ A comprehensive full-stack airline booking platform designed for seamless flight
 
 ---
 
-## 📋 Table of Contents
-- [Project Overview](#-project-overview)
-- [Technology Stack](#-technology-stack)
-- [Project Structure](#-project-structure)
-- [Key Features](#-key-features)
-- [Configuration](#-configuration)
-- [Running the Project](#-running-the-project)
-- [Application Routes](#-application-routes)
-- [Design & Security](#-design--security)
-
----
-
 ## 🦩 Project Overview
 **Flamingo Airlines** is a modern web application that enables users to:
 * Search for real-time flight availability.
@@ -78,3 +66,209 @@ frontend/
 │   └── main.jsx        # React entry point
 └── tailwind.config.js
 ```
+🎯 Key Features
+---------------
+
+### User-Facing Features
+
+1.  **Flight Booking Flow**
+    
+    *   Search flights by origin, destination, and dates
+        
+    *   View available flights with pricing
+        
+    *   Select seats and passengers
+        
+    *   Choose meal options
+        
+    *   Complete payment
+        
+    *   Receive booking confirmation
+        
+2.  **User Authentication**
+    
+    *   User registration and login
+        
+    *   JWT-based session management
+        
+    *   Protected routes for authenticated users
+        
+3.  **Booking Management**
+    
+    *   View booking details
+        
+    *   Cancel tickets
+        
+    *   Refund processing
+        
+4.  **Information Pages**
+    
+    *   Flight schedules
+        
+    *   Fare and baggage information
+        
+    *   Meal options
+        
+    *   International travel guidelines
+        
+    *   Airport information
+        
+    *   Safety and trust information
+        
+    *   Help center
+        
+    *   Refund policy
+        
+    *   Contact page
+        
+    *   About us
+        
+
+### Backend API Endpoints
+
+#### Authentication (/api/auth)
+
+*   User registration
+    
+*   User login
+    
+*   Token validation
+    
+
+#### Flights (/api/flights)
+
+*   Search available flights
+    
+*   Get flight details
+    
+*   View flight schedules
+    
+
+#### Bookings (/api/bookings)
+
+*   Create new booking
+    
+*   Get user bookings
+    
+*   Get booking details
+    
+*   Cancel booking
+    
+
+#### Payments (/api/payments)
+
+*   Process payment
+    
+*   Verify payment status
+    
+*   Handle refunds
+
+## 🔧 Configuration
+
+### Environment Variables (Backend)
+
+PORT=5000
+
+NODE\_ENV=development
+
+DB\_HOST=localhost
+
+DB\_USER=root
+
+DB\_PASSWORD=Sdk@dam5
+
+DB\_NAME=flamingo\_airlines
+
+DB\_PORT=3306
+
+JWT\_SECRET=flamingo\_secret\_key
+
+FRONTEND\_URL=http://localhost:5173
+
+### Dependencies Installed
+
+*   ✅ Frontend: node\_modules present
+    
+*   ✅ Backend: node\_modules present
+    
+
+🚀 Running the Project
+----------------------
+
+### Prerequisites
+
+1.  **Node.js** installed
+    
+2.  **MySQL** server running
+    
+3.  **Database** flamingo\_airlines created and configured
+    
+
+### Steps to Run
+
+1.  **Start MySQL** server (ensure it's running on port 3306)
+2.  **Start Backend** (in `/backend` directory):
+    
+    npm run dev  \# or npm start
+    
+3.  **Start Frontend** (in `/frontend` directory):
+    
+    npm run dev
+    
+4.  **Access Application**: `http://localhost:5173`
+    
+## 📱 Application Routes
+
+| Route | Description |
+| --- | --- |
+| / | Landing page with hero and features |
+| /login | User login |
+| /signup | User registration |
+| /search | Flight search interface |
+| /flights | Flight results listing |
+| /booking | Booking details form |
+| /meals | Meal selection |
+| /payment | Payment processing |
+| /confirmation | Booking confirmation |
+| /cancel | Ticket cancellation |
+| /schedule | Flight schedules |
+| /fares | Fare and baggage info |
+| /meal-options | Available meal options |
+| /international-travel | Travel guidelines |
+| /airports | Airport information |
+| /safety | Safety information |
+| /help | Help center |
+| /refund-policy | Refund policy |
+| /contact | Contact page |
+| /about | About us |
+
+* * *
+
+🎨 Design Features
+------------------
+
+*   **Modern UI** with TailwindCSS styling
+    
+*   **Smooth Animations** using Framer Motion
+    
+*   **Responsive Design** for mobile and desktop
+    
+*   **Component-based Architecture** for maintainability
+    
+*   **Context API** for state management
+    
+*   **Protected Routes** for authentication
+    
+
+🔒 Security Features
+--------------------
+
+*   **Password Hashing** with bcryptjs
+    
+*   **JWT Authentication** for secure sessions
+    
+*   **CORS Protection** configured
+    
+*   **Environment Variables** for sensitive data
+    
+*   **Protected API Routes** with middleware
